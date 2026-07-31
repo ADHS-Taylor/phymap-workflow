@@ -1,0 +1,7 @@
+name: phymap_raxml
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - raxml-ng>=1.2

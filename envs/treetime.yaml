@@ -1,0 +1,7 @@
+name: phymap_treetime
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - treetime>=0.11

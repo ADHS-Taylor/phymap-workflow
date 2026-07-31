@@ -1,0 +1,33 @@
+sample_id,collection_date,city,state,country,lat,long
+S00,2025-01-15,New York City,New York,USA,40.7128,-74.006
+S01,2025-02-10,Boston,Massachusetts,USA,42.3601,-71.0589
+S02,2025-02-28,Philadelphia,Pennsylvania,USA,39.9526,-75.1652
+S03,2025-03-15,Newark,New Jersey,USA,40.7357,-74.1724
+S04,2025-04-05,Baltimore,Maryland,USA,39.2904,-76.6122
+S05,2025-04-20,Richmond,Virginia,USA,37.5407,-77.436
+S06,2025-05-15,Raleigh,North Carolina,USA,35.7796,-78.6382
+S07,2025-06-10,Atlanta,Georgia,USA,33.749,-84.388
+S08,2025-07-01,Miami,Florida,USA,25.7617,-80.1918
+S09,2025-07-20,Birmingham,Alabama,USA,33.5186,-86.8104
+S10,2025-08-05,Nashville,Tennessee,USA,36.1627,-86.7816
+S11,2025-08-25,New Orleans,Louisiana,USA,29.9511,-90.0715
+S12,2025-09-15,Houston,Texas,USA,29.7604,-95.3698
+S13,2025-08-15,Orlando,Florida,USA,28.5383,-81.3792
+S14,2025-03-20,Buffalo,New York,USA,42.8864,-78.8784
+S15,2025-03-01,Columbus,Ohio,USA,39.9612,-82.9988
+S16,2025-03-25,Detroit,Michigan,USA,42.3314,-83.0458
+S17,2025-04-15,Chicago,Illinois,USA,41.8781,-87.6298
+S18,2025-05-01,St. Louis,Missouri,USA,38.627,-90.1994
+S19,2025-06-01,Denver,Colorado,USA,39.7392,-104.9903
+S20,2025-06-20,Salt Lake City,Utah,USA,40.7608,-111.891
+S21,2025-07-10,Phoenix,Arizona,USA,33.4484,-112.074
+S22,2025-07-30,Las Vegas,Nevada,USA,36.1716,-115.1398
+S23,2025-08-15,Los Angeles,California,USA,34.0522,-118.2437
+S24,2025-09-01,Portland,Oregon,USA,45.5152,-122.6784
+S25,2025-09-20,Seattle,Washington,USA,47.6062,-122.3321
+S26,2025-09-10,San Francisco,California,USA,37.7749,-122.4194
+S27,2025-10-05,Dallas,Texas,USA,32.7767,-96.797
+S28,2025-10-15,Spokane,Washington,USA,47.6588,-117.426
+S29,2025-05-10,Springfield,Illinois,USA,39.7817,-89.6501
+S30,2025-07-05,Colorado Springs,Colorado,USA,38.8339,-104.8214
+S31,2025-08-20,Tucson,Arizona,USA,32.2226,-110.9747

@@ -1,0 +1,98 @@
+# =============================================================================
+# phymap-workflow  |  Configuration
+# =============================================================================
+# Edit this file to point at your data and tune pipeline parameters.
+# All paths are relative to the directory you run Snakemake from
+# (i.e., the root of this repo).
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED: Input files
+# -----------------------------------------------------------------------------
+
+# Aligned multi-FASTA (nucleotide). Headers must match the specimen ID column
+# in your metadata file (see provider settings below).
+fasta: "../data/pathoplexus/measles_aligned-nuc_2026-06-24T0256.fasta"
+
+# Metadata file – TSV or CSV. Must contain at minimum: specimen ID, collection
+# date, and one or more geographic location columns.
+metadata: "../data/pathoplexus/measles_metadata_2026-06-24T0256.tsv"
+
+# Accession IDs to exclude from the analysis (e.g. molecular clock outliers)
+exclude_accessions: []
+
+# -----------------------------------------------------------------------------
+# Sequence Pruning – Keep only distinct sequences per location and date cluster
+# -----------------------------------------------------------------------------
+prune: true                 # set to true to enable sequence pruning
+pruning_method: "clade"        # "fps" (Furthest-Point Sampling) | "clade" (Clade-Based Local Pruning)
+prune_date_resolution: "month" # "day" | "week" | "month" | "year" for grouping
+prune_max_representatives: 3   # For "fps" method: max sequences to keep per location/month
+prune_min_snp_difference: 2    # For "fps" method: min SNP difference to keep an extra sequence
+prune_clade_snp_cutoff: 5      # For "clade" method: SNP threshold to define distinct clades (Method C)
+
+
+
+
+# -----------------------------------------------------------------------------
+# Data provider
+#
+# "pathoplexus"  – uses known Pathoplexus column names automatically:
+#                    specimen  →  accessionVersion
+#                    date      →  sampleCollectionDate
+#                    location  →  geoLocCity + geoLocAdmin1 + geoLocCountry
+#                  No further column configuration needed.
+#
+# "custom"       – you specify the column names below.
+# -----------------------------------------------------------------------------
+provider: "pathoplexus"
+
+# --- Custom column mapping (only used when provider: "custom") ---------------
+
+# Column whose values match the sequence IDs in the FASTA headers exactly.
+custom_col_specimen: "sample_id"
+
+# Column containing ISO 8601 collection dates (YYYY-MM-DD or YYYY-MM or YYYY).
+custom_col_date: "collection_date"
+
+# One or more columns whose values are joined (", ") into a human-readable
+# location string passed to tidygeocoder for geocoding.
+custom_col_location_parts:
+  - "city"
+  - "state"
+  - "country"
+
+
+# -----------------------------------------------------------------------------
+# RAxML-ng  –  maximum-likelihood tree
+# -----------------------------------------------------------------------------
+raxml_model: "GTR+G"       # substitution model; use "GTR+G" for most viruses
+raxml_seed: 42             # random seed for reproducibility
+raxml_threads: "auto"      # "auto" lets RAxML-ng choose; or set an integer
+
+
+# -----------------------------------------------------------------------------
+# TreeTime  –  molecular clock / time-scaled tree
+# -----------------------------------------------------------------------------
+clock_filter_iqd: 4        # remove sequences > N IQDs from the clock regression
+treetime_coalescent: "skyline"  # "skyline" | "opt" | a numeric Ne value
+treetime_clock_rate: ""    # leave blank to auto-infer; or set e.g. "1e-3"
+
+
+# -----------------------------------------------------------------------------
+# phymapr  –  ancestral state reconstruction + animated map
+# -----------------------------------------------------------------------------
+map_style: "polygon"       # "polygon" (fast, light) | "tile" (dark, satellite)
+n_prune_early: 4           # prune this many earliest nodes from the animation
+
+# Advanced Epidemiologic Mapping Settings (Pacing, Confidence, and Imports)
+transmission_threshold_direct_snp: 2    # <= 2 SNPs is a direct pathway (likely)
+transmission_threshold_indirect_snp: 5  # <= 5 SNPs is an indirect pathway (intermediates missing)
+distant_rendering_style: "import_arrow" # "curve" | "import_arrow" | "pulse" | "hide"
+animation_pace_balance: 0.5            # 1.0 = linear time, 0.0 = pure rank-based, 0.5 = blended pacing
+
+# -----------------------------------------------------------------------------
+# Output directory
+# -----------------------------------------------------------------------------
+results_dir: "../results/phymap/results_pathoplexus"

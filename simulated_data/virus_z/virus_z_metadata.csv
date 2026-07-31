@@ -1,0 +1,34 @@
+sample_id,collection_date,city,state,country,lat,long
+S00,2025-01-15,New York City,New York,USA,40.7128,-74.006
+S01,2025-01-17,New York City,New York,USA,40.7128,-74.006
+S02,2025-01-20,Newark,New Jersey,USA,40.7357,-74.1724
+S_ATL_hub,2025-01-22,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_1,2025-02-15,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_2,2025-02-15,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_3,2025-02-16,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_4,2025-02-16,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_5,2025-02-17,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_6,2025-02-17,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_7,2025-02-18,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_8,2025-02-18,Atlanta,Georgia,USA,33.749,-84.388
+S_ATL_9,2025-02-19,Atlanta,Georgia,USA,33.749,-84.388
+S_LA_hub,2025-01-25,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_1,2025-02-22,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_2,2025-02-22,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_3,2025-02-24,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_4,2025-02-24,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_5,2025-02-26,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_6,2025-02-26,Los Angeles,California,USA,34.0522,-118.2437
+S_LA_7,2025-02-28,Los Angeles,California,USA,34.0522,-118.2437
+S_CHI,2025-01-22,Chicago,Illinois,USA,41.8781,-87.6298
+S_DEN,2025-03-25,Denver,Colorado,USA,39.7392,-104.9903
+S_DEN_1,2025-03-28,Denver,Colorado,USA,39.7392,-104.9903
+S_DEN_2,2025-03-28,Denver,Colorado,USA,39.7392,-104.9903
+S_SEA,2025-02-05,Seattle,Washington,USA,47.6062,-122.3321
+S_SLC,2025-03-20,Salt Lake City,Utah,USA,40.7608,-111.891
+S_MIA_import,2025-03-01,Miami,Florida,USA,25.7617,-80.1918
+S_MIA_1,2025-03-05,Miami,Florida,USA,25.7617,-80.1918
+S_MIA_2,2025-03-10,Miami,Florida,USA,25.7617,-80.1918
+S_TPA,2025-03-12,Tampa,Florida,USA,27.9506,-82.4572
+S_HOU,2025-03-02,Houston,Texas,USA,29.7604,-95.3698
+S_DAL,2025-03-15,Dallas,Texas,USA,32.7767,-96.797

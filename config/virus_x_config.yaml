@@ -1,0 +1,44 @@
+# =============================================================================
+# phymap-workflow  |  Virus X Simulation Configuration
+# =============================================================================
+
+# REQUIRED: Input files
+fasta: "C:/Code/data/virus_x/virus_x_sequences.fasta"
+metadata: "C:/Code/data/virus_x/virus_x_metadata.csv"
+
+exclude_accessions: []
+
+# Sequence Pruning (Disabled for this test to retain all 32 samples)
+prune: false
+
+# Custom provider for custom data mapping
+provider: "custom"
+custom_col_specimen: "sample_id"
+custom_col_date: "collection_date"
+custom_col_location_parts:
+  - "city"
+  - "state"
+  - "country"
+
+# RAxML-ng
+raxml_model: "GTR+G"
+raxml_seed: 42
+raxml_threads: "auto"
+
+# TreeTime
+clock_filter_iqd: 4
+treetime_coalescent: "skyline"
+treetime_clock_rate: ""
+
+# phymapr settings
+map_style: "polygon"
+n_prune_early: 0
+
+# Advanced Epidemiologic Mapping Settings (Pacing, Confidence, and Imports)
+transmission_threshold_direct_snp: 2    # <= 2 SNPs is a direct pathway (likely)
+transmission_threshold_indirect_snp: 5  # <= 5 SNPs is an indirect pathway (intermediates missing)
+distant_rendering_style: "import_arrow" # "curve" | "import_arrow" | "pulse" | "hide"
+animation_pace_balance: 0.5            # 1.0 = linear time, 0.0 = pure rank-based, 0.5 = blended pacing
+
+# Output directory
+results_dir: "../results/phymap/results_virus_x"

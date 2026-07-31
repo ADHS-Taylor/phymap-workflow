@@ -1,0 +1,29 @@
+name: phymap_r
+channels:
+  - conda-forge
+  - bioconda
+  - r
+  - defaults
+dependencies:
+  - r-base>=4.3
+  # Bioconductor (phylogenetics)
+  - bioconductor-ggtree>=3.8
+  - bioconductor-treeio>=1.24
+  # CRAN packages
+  - r-ape
+  - r-dplyr
+  - r-gganimate
+  - r-ggplot2
+  - r-ggspatial
+  - r-gifski
+  - r-lubridate
+  - r-maps
+  - r-phytools
+  - r-sf
+  - r-tibble
+  - r-tidygeocoder
+  - r-tidyr
+  - r-remotes      # used to install phymapr from GitHub
+  # System lib required by sf
+  - proj
+  - gdal

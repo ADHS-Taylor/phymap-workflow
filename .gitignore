@@ -1,0 +1,29 @@
+# Input data – too large for git; users supply their own
+data/*
+!data/.gitkeep
+
+# Pipeline outputs
+results/
+
+# Snakemake internals
+.snakemake/
+
+# Conda environment caches (Snakemake --use-conda)
+.conda/
+
+# R session artifacts
+*.Rhistory
+*.RData
+*.Rproj.user/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

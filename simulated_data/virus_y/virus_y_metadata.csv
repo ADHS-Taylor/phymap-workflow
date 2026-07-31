@@ -1,0 +1,31 @@
+sample_id,collection_date,city,state,country,lat,long
+S00,2025-01-15,New York City,New York,USA,40.7128,-74.006
+S01,2025-01-20,Atlanta,Georgia,USA,33.749,-84.388
+S02,2025-01-22,Chicago,Illinois,USA,41.8781,-87.6298
+S03,2025-01-25,Los Angeles,California,USA,34.0522,-118.2437
+S04,2025-01-28,Dallas,Texas,USA,32.7767,-96.797
+S05,2025-02-02,Denver,Colorado,USA,39.7392,-104.9903
+S06,2025-02-05,Seattle,Washington,USA,47.6062,-122.3321
+S07,2025-02-08,Miami,Florida,USA,25.7617,-80.1918
+S08,2025-02-12,Birmingham,Alabama,USA,33.5186,-86.8104
+S09,2025-02-18,Nashville,Tennessee,USA,36.1627,-86.7816
+S10,2025-02-25,Charlotte,North Carolina,USA,35.2271,-80.8431
+S11,2025-02-15,Milwaukee,Wisconsin,USA,43.0389,-87.9065
+S12,2025-02-22,Indianapolis,Indiana,USA,39.7684,-86.1581
+S13,2025-03-01,Detroit,Michigan,USA,42.3314,-83.0458
+S14,2025-02-10,San Diego,California,USA,32.7157,-117.1611
+S15,2025-02-14,Riverside,California,USA,33.9533,-117.3962
+S16,2025-02-20,Las Vegas,Nevada,USA,36.1716,-115.1398
+S17,2025-02-28,Phoenix,Arizona,USA,33.4484,-112.074
+S18,2025-02-18,Houston,Texas,USA,29.7604,-95.3698
+S19,2025-02-24,Austin,Texas,USA,30.2672,-97.7431
+S20,2025-03-05,Oklahoma City,Oklahoma,USA,35.4676,-97.5164
+S21,2025-02-20,Colorado Springs,Colorado,USA,38.8339,-104.8214
+S22,2025-03-02,Salt Lake City,Utah,USA,40.7608,-111.891
+S23,2025-02-25,Portland,Oregon,USA,45.5152,-122.6784
+S24,2025-03-10,Spokane,Washington,USA,47.6588,-117.426
+S25,2025-02-28,Orlando,Florida,USA,28.5383,-81.3792
+S26,2025-03-08,Tampa,Florida,USA,27.9506,-82.4572
+S27,2025-01-25,Philadelphia,Pennsylvania,USA,39.9526,-75.1652
+S28,2025-01-18,Newark,New Jersey,USA,40.7357,-74.1724
+S29,2025-02-05,Boston,Massachusetts,USA,42.3601,-71.0589
