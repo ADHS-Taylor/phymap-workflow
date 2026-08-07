@@ -1,176 +1,146 @@
 # phymap-workflow
 
-A reproducible Snakemake pipeline that takes an aligned FASTA and sample metadata from end to end: maximum-likelihood tree → molecular-clock time tree → animated phylogeographic transmission map.
+A standalone pipeline that takes aligned FASTA sequences and sample metadata through to an animated phylogeographic transmission map. Handles tree building, molecular clock fitting, and visualization in a single command.
 
 ```
 aligned FASTA + metadata
-        │
-        ▼
-   [1] prep        parse headers, build dates file & phymapr metadata
-        │
-        ▼
-   [2] RAxML-ng    maximum-likelihood tree (GTR+G)
-        │
-        ▼
-   [3] TreeTime    molecular-clock time-scaled tree (annotated NEXUS)
-        │
-        ▼
-   [4] phymapr     ancestral state reconstruction → tree plot + animated map GIF
+        |
+        v
+   [1] prep       validate IDs, geocode locations, optional pruning
+        |
+        v
+   [2] tree       IQ-TREE or RAxML-ng (ML), or R neighbor-joining fallback
+        |
+        v
+   [3] treetime   molecular clock, time-scaled annotated NEXUS
+        |
+        v
+   [4] phymapr    ancestral reconstruction, transmission map + tree plot
 ```
 
----
+## Requirements
 
-## Installation (2 commands)
+**Python 3.10+**
+```bash
+pip install pandas biopython phylo-treetime numpy
+```
 
-You need [conda / miniforge](https://github.com/conda-forge/miniforge) once on your system.  Everything else is handled automatically.
+**R 4.x+**
+```R
+install.packages(c("BiocManager", "remotes"))
+BiocManager::install(c("ggtree", "treeio"))
+remotes::install_github("ADHS-Taylor/phymapr")
+```
+
+**Optional (recommended): IQ-TREE for ML tree building**
+
+Download the binary for your platform from [iqtree.github.io](https://iqtree.github.io/) and add it to your PATH. If IQ-TREE isn't found, the pipeline falls back to neighbor-joining in R (works fine for smaller datasets).
+
+No conda, Snakemake, or WSL required.
+
+## Quick Start
+
+### Pathoplexus data
+
+Download an **aligned nucleotide FASTA** and **metadata TSV** from [pathoplexus.org](https://pathoplexus.org) for any supported pathogen, then:
 
 ```bash
-# 1. Install Snakemake into your base environment
-conda install -n base -c conda-forge snakemake
-
-# 2. Run the pipeline (Snakemake creates all tool environments on first run)
-snakemake --use-conda -j 8
+python run_pipeline.py --fasta rsv-b_aligned-nuc.fasta.gz --metadata rsv-b_metadata.tsv.gz --outdir results/rsv-b --prune
 ```
 
-That's it.  Each stage runs in its own isolated conda environment — no manual tool installation needed.
-
----
-
-## Quick start: Pathoplexus data
-
-Pathoplexus exports pre-aligned FASTA + TSV metadata with consistent column names, making it the fastest path to a result.
-
-1. Download an **aligned nucleotide FASTA** and its **metadata TSV** from [Pathoplexus](https://pathoplexus.org).
-2. Place both files in the `data/` folder of this repo.
-3. Edit `config/config.yaml` — change only the two `fasta:` and `metadata:` paths:
-
-```yaml
-fasta:    "data/your_virus_aligned.fasta"
-metadata: "data/your_virus_metadata.tsv"
-provider: "pathoplexus"   # leave as-is
-```
-
-4. Run:
-
-```bash
-snakemake --use-conda -j 8
-```
-
-Results land in `results/`:
+The pipeline handles `.gz` decompression, validates alignment, and runs all four stages. Results land in `results/rsv-b/`:
 
 | File | Description |
 |------|-------------|
-| `results/transmission_map.gif` | Animated geographic transmission map |
-| `results/tree_plot.png` | Time-scaled phylogenetic tree |
-| `results/treetime/timetree.nexus` | Annotated NEXUS tree (BEAST-compatible) |
-| `results/raxml/tree.raxml.bestTree` | ML tree (newick) |
-| `results/dates.tsv` | Dates file used by TreeTime |
-| `results/phymapr_metadata.tsv` | Cleaned metadata passed to phymapr |
+| `tree_plot.png` | Time-scaled phylogenetic tree |
+| `transmission_map_static.png` | All pathways at once (easiest to read) |
+| `transmission_map.gif` | Animated version |
+| `treetime/timetree.nexus` | Annotated NEXUS for downstream use |
 
----
+### Custom data
 
-## Using your own data (custom provider)
+If your data isn't from Pathoplexus, use `--provider custom` and a config file:
 
-If your metadata doesn't come from Pathoplexus, set `provider: "custom"` and specify your column names:
+```bash
+python run_pipeline.py --fasta my_alignment.fasta --metadata my_metadata.csv --provider custom --config config/my_config.yaml --outdir results/my_run
+```
 
+Your config specifies column mappings:
 ```yaml
-fasta:    "data/my_sequences_aligned.fasta"
-metadata: "data/my_metadata.csv"
-
 provider: "custom"
-custom_col_specimen: "sample_id"          # must match FASTA header IDs exactly
-custom_col_date:     "collection_date"    # ISO 8601: YYYY-MM-DD (or YYYY-MM, YYYY)
+custom_col_specimen: "sample_id"
+custom_col_date: "collection_date"
 custom_col_location_parts:
   - "city"
   - "state"
   - "country"
 ```
 
-Location columns are joined into a single geocodable string (e.g. `"Phoenix, Arizona, USA"`) and passed to [tidygeocoder](https://jessecambon.github.io/tidygeocoder/) (OpenStreetMap) to resolve coordinates.  An internet connection is required for this step.
+Specimen IDs must match FASTA headers exactly. Dates should be ISO format (YYYY-MM-DD or YYYY-MM). Location columns get joined into a string and geocoded via OpenStreetMap.
 
----
+### Already have a timetree?
 
-## Configuration reference
-
-All options live in `config/config.yaml`.
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `fasta` | — | Path to aligned FASTA |
-| `metadata` | — | Path to metadata TSV/CSV |
-| `provider` | `pathoplexus` | `pathoplexus` or `custom` |
-| `raxml_model` | `GTR+G` | RAxML-ng substitution model |
-| `raxml_seed` | `42` | Random seed for reproducibility |
-| `raxml_threads` | `auto` | Thread count for RAxML-ng |
-| `clock_filter_iqd` | `4` | TreeTime outlier filter (IQDs from clock regression) |
-| `treetime_coalescent` | `skyline` | TreeTime coalescent model: `skyline`, `opt`, or a numeric Ne |
-| `treetime_clock_rate` | `""` | Fixed clock rate (leave blank to auto-infer) |
-| `map_style` | `polygon` | `polygon` (fast/light) or `tile` (dark/satellite) |
-| `n_prune_early` | `4` | Number of early ancestor nodes to prune from animation |
-| `results_dir` | `results` | Output directory |
-
----
-
-## Supported Pathoplexus metadata columns
-
-The prep step automatically maps these Pathoplexus columns:
-
-| Role | Column |
-|------|--------|
-| Specimen ID (= FASTA header) | `accessionVersion` |
-| Collection date | `sampleCollectionDate` |
-| Location (geocoded) | `geoLocCity` + `geoLocAdmin1` + `geoLocCountry` |
-
-Additional columns (`genotype`, `geoLocCountry`, etc.) are carried forward into the phymapr metadata TSV.
-
----
-
-## Re-running a specific stage
-
-Snakemake skips stages whose outputs already exist.  To force a specific rule to re-run:
+Skip tree building entirely:
 
 ```bash
-snakemake --use-conda -j 8 --forcerun raxml
+python run_pipeline.py --fasta aligned.fasta --metadata meta.tsv --timetree my_tree.nexus --outdir results
 ```
 
-To re-run everything from scratch:
+## Simulated Examples
+
+The `simulated_data/` folder contains three test datasets (Virus X, Y, Z) that run the full pipeline without needing external downloads. These are described in detail in the [phymapr](https://github.com/ADHS-Taylor/phymapr) README.
 
 ```bash
-snakemake --use-conda -j 8 --forceall
+python run_pipeline.py --fasta simulated_data/virus_x/virus_x_sequences.fasta --metadata simulated_data/virus_x/virus_x_metadata.csv --provider custom --outdir results/virus_x
 ```
 
----
+## Options
 
-## Dependencies
+```
+python run_pipeline.py --help
 
-Each stage runs in its own auto-managed conda environment:
+  --fasta FASTA        Aligned FASTA file (supports .gz)
+  --metadata METADATA  Metadata TSV/CSV (supports .gz)
+  --outdir OUTDIR      Output directory (default: ./results)
+  --provider PROVIDER  "pathoplexus" or "custom" (default: pathoplexus)
+  --prune              Enable sequence pruning (reduces redundancy)
+  --config CONFIG      YAML config file (overrides CLI defaults)
+  --timetree TIMETREE  Pre-existing timetree (skips tree building + TreeTime)
+```
 
-| Stage | Environment | Key tools |
-|-------|-------------|-----------|
-| prep | `envs/prep.yaml` | Python, pandas |
-| raxml | `envs/raxml.yaml` | RAxML-ng ≥ 1.2 |
-| treetime | `envs/treetime.yaml` | TreeTime ≥ 0.11 |
-| phymapr | `envs/r_phymapr.yaml` | R ≥ 4.3, ggtree, treeio, phytools, phymapr |
+## Pruning
 
-[phymapr](https://github.com/ADHS-Taylor/phymapr) is installed automatically from GitHub the first time the R environment is used.
+When `--prune` is enabled, the prep step computes pairwise SNP distances and clusters sequences using complete-linkage. One representative per location/month/clade is kept. This reduces dataset size substantially (often 50-80% reduction) while preserving geographic and genetic diversity.
 
----
+SNP distances are computed in Python (no external tools required). If `pairsnp` is installed (`pip install pairsnp`) it's used for speed; otherwise falls back to numpy.
 
-## Project structure
+## Snakemake (advanced)
+
+The `Snakefile` is still included for users who prefer Snakemake orchestration with conda environments. See the config examples in `config/`. This requires conda and is not necessary for most use cases — `run_pipeline.py` does the same thing without the dependency overhead.
+
+## Notes
+
+- Sequences must be **aligned** (all same length). If you download from Pathoplexus, choose "Aligned nucleotide" not just "Nucleotide."
+- For slow-evolving pathogens like mpox, TreeTime may fail to fit a clock automatically. Set `treetime_clock_rate` in your config (e.g., `6e-5` for mpox).
+- Datasets with multiple divergent lineages (e.g., measles D8 + B3) should be split by genotype before running. Mixing lineages that diverged centuries ago produces meaningless deep-root trees.
+- Location geocoding requires internet on first run for each unique location string.
+
+## Project Structure
 
 ```
 phymap-workflow/
-├── Snakefile               # pipeline definition
+├── run_pipeline.py          # main entry point (no Snakemake needed)
+├── Snakefile                # alternative Snakemake orchestration
 ├── config/
-│   └── config.yaml         # all user-configurable settings
-├── envs/
-│   ├── prep.yaml           # Python environment for metadata prep
-│   ├── raxml.yaml          # RAxML-ng environment
-│   ├── treetime.yaml       # TreeTime environment
-│   └── r_phymapr.yaml      # R + phymapr environment
+│   ├── example_config.yaml  # annotated config template
+│   └── virus_*_config.yaml  # configs for simulated data
+├── envs/                    # conda env definitions (for Snakemake path)
 ├── scripts/
-│   ├── prep_metadata.py    # Stage 1: FASTA/metadata parser
-│   └── run_phymapr.R       # Stage 4: phymapr wrapper
-├── data/                   # place your input files here (gitignored)
-└── results/                # pipeline outputs (gitignored)
+│   ├── prep_metadata.py     # metadata validation + pruning
+│   └── run_phymapr.R        # R wrapper for phymapr
+├── simulated_data/          # Virus X, Y, Z test datasets
+│   ├── virus_x/
+│   ├── virus_y/
+│   └── virus_z/
+└── data/                    # place your input files here
 ```

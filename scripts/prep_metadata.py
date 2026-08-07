@@ -221,13 +221,6 @@ def filter_fasta(input_path, output_path, keep_ids):
     print(f"[prep] Written filtered FASTA to {output_path} ({count} sequences)")
 
 
-def to_wsl_path(win_path):
-    p = Path(win_path).resolve()
-    parts = p.parts
-    drive = parts[0].replace(":\\", "").lower()
-    return f"/mnt/{drive}/" + "/".join(parts[1:])
-
-
 def get_date_group(date_str, resolution="month"):
     if pd.isna(date_str):
         return "unknown"
@@ -260,18 +253,97 @@ def get_date_group(date_str, resolution="month"):
     return "unknown"
 
 
+def compute_snp_distance_matrix(fasta_path, seq_ids=None):
+    """
+    Compute pairwise SNP distance matrix from an aligned FASTA.
+    
+    Strategy:
+      1. Try pairsnp (fast C/scipy sparse backend)
+      2. Fall back to numpy vectorized (pure Python, handles any numpy version)
+    
+    Returns:
+      (list_of_ids, dict_of_dicts) where dict[id1][id2] = SNP distance
+    """
+    from Bio import SeqIO
+    import numpy as np
+
+    records = list(SeqIO.parse(fasta_path, "fasta"))
+    if seq_ids is not None:
+        seq_ids_set = set(seq_ids)
+        records = [r for r in records if r.id in seq_ids_set]
+
+    ids = [r.id for r in records]
+    n = len(ids)
+
+    if n == 0:
+        return ids, {}
+
+    # Try pairsnp first (fast sparse approach)
+    try:
+        import pairsnp
+        # pairsnp.calculate_snp_matrix may fail on newer numpy; we'll patch in-memory
+        # Write a temp fasta with just our subset if needed
+        import tempfile, os
+        tmp_fasta = tempfile.NamedTemporaryFile(mode='w', suffix='.fasta', delete=False)
+        for r in records:
+            tmp_fasta.write(f">{r.id}\n{str(r.seq)}\n")
+        tmp_fasta.close()
+
+        # Attempt the call — if pairsnp's numpy usage is broken, catch it
+        sparse_mat = pairsnp.calculate_snp_matrix(tmp_fasta.name)
+        os.unlink(tmp_fasta.name)
+
+        # Convert sparse to dense dict
+        dense = sparse_mat.toarray() if hasattr(sparse_mat, 'toarray') else np.array(sparse_mat)
+        # Make symmetric (pairsnp stores upper triangle)
+        dense = dense + dense.T
+        dist_dict = {s1: {s2: int(dense[i][j]) for j, s2 in enumerate(ids)} for i, s1 in enumerate(ids)}
+        print(f"[prune] SNP distances computed via pairsnp ({n} sequences)")
+        return ids, dist_dict
+
+    except Exception as e:
+        print(f"[prune] pairsnp unavailable or failed ({e}), using numpy fallback...")
+
+    # Numpy fallback: vectorized pairwise distance
+    print(f"[prune] Computing SNP distances with numpy ({n} sequences)...")
+
+    # Encode sequences as uint8 arrays
+    seq_arrays = []
+    for r in records:
+        s = np.frombuffer(str(r.seq).upper().encode('ascii'), dtype=np.uint8)
+        seq_arrays.append(s)
+    
+    seqs = np.array(seq_arrays)  # shape: (n, alignment_length)
+    
+    # Valid positions: A=65, C=67, G=71, T=84
+    valid_mask = np.isin(seqs, [65, 67, 71, 84])  # True where base is ACGT
+
+    dist_dict = {s: {t: 0 for t in ids} for s in ids}
+    
+    # Compute pairwise distances (vectorized per-pair, not per-position)
+    for i in range(n):
+        for j in range(i + 1, n):
+            both_valid = valid_mask[i] & valid_mask[j]
+            d = int(np.sum((seqs[i] != seqs[j]) & both_valid))
+            dist_dict[ids[i]][ids[j]] = d
+            dist_dict[ids[j]][ids[i]] = d
+    
+    print(f"[prune] SNP distances computed via numpy fallback ({n} sequences)")
+    return ids, dist_dict
+
+
 def prune_sequences(meta_matched, fasta_file, col_specimen, col_date, location_parts, resolution, dates_out,
                     method, max_reps, min_snp_diff, clade_cutoff):
     """
-    Advanced sequence pruning. Supports two methods:
-      1. "fps" (Furthest-Point Sampling): groups by location/date, runs snp-dists locally,
+    Cross-platform sequence pruning. Supports two methods:
+      1. "fps" (Furthest-Point Sampling): groups by location/date, computes SNP distances,
          and keeps up to max_reps genetically diverse representatives.
-      2. "clade" (Clade-Based Local Pruning): runs snp-dists globally, performs complete-linkage
-         clustering at clade_cutoff, and keeps exactly 1 representative per location/date/clade combination.
+      2. "clade" (Clade-Based Local Pruning): computes global SNP distances, performs 
+         complete-linkage clustering, and keeps 1 representative per location/date/clade.
+    
+    SNP distances are computed using pairsnp (fast) or numpy (fallback).
+    No external tools (snp-dists, WSL) required.
     """
-    import csv
-    import io
-    import subprocess
     from Bio import SeqIO
     
     print(f"[prune] Starting sequence pruning using method='{method}' (date resolution='{resolution}')")
@@ -299,11 +371,13 @@ def prune_sequences(meta_matched, fasta_file, col_specimen, col_date, location_p
     # Helper function to compute number of Ns
     def get_n_count(sid):
         return str(seq_records[sid].seq).upper().count('N')
-        
+    
+    # Write subset FASTA for distance computation
+    import tempfile, os
     temp_dir = Path(dates_out).parent / "temp_prune"
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_fasta = temp_dir / "prune_temp.fasta"
-    
+
     retained_ids = []
     
     if method == "fps":
@@ -319,26 +393,15 @@ def prune_sequences(meta_matched, fasta_file, col_specimen, col_date, location_p
                 retained_ids.extend(group_ids)
                 continue
                 
-            # Write group to temp FASTA and run snp-dists
+            # Write group to temp FASTA
+            from Bio import SeqIO as SeqIOWriter
             group_records = [seq_records[sid] for sid in group_ids]
-            SeqIO.write(group_records, str(temp_fasta), "fasta")
+            SeqIOWriter.write(group_records, str(temp_fasta), "fasta")
             
-            wsl_path = to_wsl_path(temp_fasta)
-            cmd = ["wsl", "snp-dists", "-q", "-m", "-t", wsl_path]
+            # Compute SNP distance matrix
             try:
-                res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                _, dist_matrix = compute_snp_distance_matrix(str(temp_fasta))
                 
-                # Parse distance matrix: dist[s1][s2] = distance
-                dist_matrix = {s1: {s2: 0 for s2 in group_ids} for s1 in group_ids}
-                reader = csv.DictReader(io.StringIO(res.stdout), delimiter='\t')
-                for row in reader:
-                    s1 = row.get('sequence_1')
-                    s2 = row.get('sequence_2')
-                    d_str = row.get('distance')
-                    if s1 and s2 and d_str:
-                        dist_matrix[s1][s2] = int(d_str)
-                        dist_matrix[s2][s1] = int(d_str)
-                        
                 # Run FPS loop
                 selected = []
                 best_start = min(group_ids, key=get_n_count)
@@ -363,42 +426,31 @@ def prune_sequences(meta_matched, fasta_file, col_specimen, col_date, location_p
                 retained_ids.extend(selected)
                 
             except Exception as e:
-                print(f"[prune] WARNING: snp-dists failed for group {loc} | {dt_grp} ({e}). Retaining all sequences in group.")
+                print(f"[prune] WARNING: Distance computation failed for group {loc} | {dt_grp} ({e}). Retaining all.")
                 retained_ids.extend(group_ids)
                 
     elif method == "clade":
         print(f"[prune] Running Clade-Based Complete-Linkage clustering (clade_cutoff={clade_cutoff})")
-        # Write all matched sequences to a single temp FASTA
+        # Write all matched sequences to temp FASTA
+        from Bio import SeqIO as SeqIOWriter
         all_records = [seq_records[sid] for sid in all_matched_ids]
-        SeqIO.write(all_records, str(temp_fasta), "fasta")
+        SeqIOWriter.write(all_records, str(temp_fasta), "fasta")
         
-        wsl_path = to_wsl_path(temp_fasta)
-        cmd = ["wsl", "snp-dists", "-q", "-m", "-t", wsl_path]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            _, dist_matrix = compute_snp_distance_matrix(str(temp_fasta))
             
-            # Parse full distance matrix
-            dist_matrix = {s1: {s2: 0 for s2 in all_matched_ids} for s1 in all_matched_ids}
-            reader = csv.DictReader(io.StringIO(res.stdout), delimiter='\t')
-            for row in reader:
-                s1 = row.get('sequence_1')
-                s2 = row.get('sequence_2')
-                d_str = row.get('distance')
-                if s1 and s2 and d_str:
-                    dist_matrix[s1][s2] = int(d_str)
-                    dist_matrix[s2][s1] = int(d_str)
-                    
-            # Complete linkage clustering algorithm in Python
+            # Complete linkage clustering
             clusters = [[name] for name in all_matched_ids]
             while True:
                 min_dist = float('inf')
                 to_merge = None
                 for i in range(len(clusters)):
                     for j in range(i + 1, len(clusters)):
+                        # Complete linkage: max distance between any pair across clusters
                         max_d = 0
                         for n1 in clusters[i]:
                             for n2 in clusters[j]:
-                                d = dist_matrix[n1].get(n2, 0)
+                                d = dist_matrix.get(n1, {}).get(n2, 0)
                                 if d > max_d:
                                     max_d = d
                         if max_d < min_dist:
@@ -424,22 +476,20 @@ def prune_sequences(meta_matched, fasta_file, col_specimen, col_date, location_p
             meta_matched = meta_matched.copy()
             meta_matched['_clade_id'] = meta_matched[col_specimen].apply(lambda sid: seq_to_clade.get(str(sid), -1))
             
-            # Group by location, date, and clade ID
+            # Group by location, date, and clade ID — keep 1 representative per combo
             groups = meta_matched.groupby(['_loc_str', '_date_group', '_clade_id'])
             for keys, df_grp in groups:
                 group_ids = [str(sid) for sid in df_grp[col_specimen].dropna().unique() if str(sid) in seq_records]
                 if not group_ids:
                     continue
-                # Keep exactly one representative per location-date-clade
                 best_member = min(group_ids, key=get_n_count)
                 retained_ids.append(best_member)
                 
         except Exception as e:
-            print(f"[prune] ERROR: Global snp-dists/complete-linkage failed ({e}). Retaining all matched sequences.")
+            print(f"[prune] ERROR: SNP distance/clustering failed ({e}). Retaining all sequences.")
             retained_ids = all_matched_ids
             
     else:
-        # Fallback to no pruning
         print(f"[prune] Unknown method '{method}' - retaining all sequences")
         retained_ids = all_matched_ids
         

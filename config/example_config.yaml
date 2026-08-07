@@ -1,0 +1,47 @@
+# =============================================================================
+# phymap-workflow | Example Configuration
+# =============================================================================
+# Copy this file and edit the fasta/metadata paths to point at your data.
+# All other settings have sensible defaults.
+# =============================================================================
+
+# Input files (required)
+fasta: "data/your_aligned_sequences.fasta"
+metadata: "data/your_metadata.tsv"
+
+# Provider: "pathoplexus" auto-maps Pathoplexus column names.
+# Use "custom" if your metadata has different column names.
+provider: "pathoplexus"
+
+# Custom column mapping (only used when provider: "custom")
+# custom_col_specimen: "sample_id"
+# custom_col_date: "collection_date"
+# custom_col_location_parts:
+#   - "city"
+#   - "state"
+#   - "country"
+
+# Sequence pruning (reduces redundant sequences per location/time)
+prune: true
+pruning_method: "clade"
+prune_date_resolution: "month"
+prune_clade_snp_cutoff: 5
+
+# Tree building
+raxml_model: "GTR+G"
+
+# TreeTime molecular clock
+clock_filter_iqd: 4
+treetime_coalescent: "skyline"
+# treetime_clock_rate: ""  # leave blank to auto-infer; set for slow-evolving pathogens (e.g., "6e-5" for mpox)
+
+# Map output
+map_style: "polygon"
+n_prune_early: 4
+transmission_threshold_direct_snp: 2
+transmission_threshold_indirect_snp: 5
+distant_rendering_style: "import_arrow"
+animation_pace_balance: 0.5
+
+# Output directory
+results_dir: "results"
